@@ -10,14 +10,21 @@ import yaml
 import subprocess
 
 class football():
-    def __init__(self, yaml_path):
+    def __init__(self, yaml_path, 
+                 force_parsing = False, 
+                 dataset4 = 'training',
+                 system4 = 'windows',
+                 draw_distribution = False,
+                 pdf_report = False):
         self.yaml_path = yaml_path
-        #with open(yaml_path) as f:
-        #    yaml_dict = yaml.safe_load(f)
-        #self.yaml_dict = kwargs
         self.yaml_dict = self.yaml2dict()
         self.yaml_dict['info_folder'] = './info/'
         self.yaml_dict['live_folder'] = './live/'
+        self.force_parsing = force_parsing
+        self.dataset4 = dataset4
+        self.system4 = system4
+        self.draw_distribution = draw_distribution
+        self.pdf_report = pdf_report
     def yaml2dict(self):
         with open(self.yaml_path) as f:
             arguments_dict = yaml.safe_load(f)
@@ -235,6 +242,9 @@ class football():
         return live_df
     
     def csv4win(self, live_df:pd.DataFrame):
+        line_terminator = '\n'
+        if self.system4 == 'windows':
+            line_terminator = '\r\n'
         live_df.loc[:, ['idx', 'Result', 'home_half1', 'away_half1',
                 'preK1', 'preKX', 'preK2',  
                 'preK1_norm_pos', 'preKX_norm_pos', 'preK2_norm_pos',
@@ -254,7 +264,7 @@ class football():
                 'K1_ret_sh2_45', 'KX_ret_sh2_45','K2_ret_sh2_45',
                 'K1_ret_sh2_60', 'KX_ret_sh2_60','K2_ret_sh2_60',
                 'K1_ret_sh2_75', 'KX_ret_sh2_75','K2_ret_sh2_75',
-                ]].to_csv('base_line_data.csv', index = False, line_terminator = '\r\n')
+                ]].to_csv('base_line_data.csv', index = False, line_terminator = line_terminator)
 
     def download_parse_clean_normalize(self):
 
@@ -264,7 +274,15 @@ class football():
         'parsed_home_45min', 'parsed_away_45min', 'min60K1', 'min60KX', 'min60K2',
         'parsed_home_60min', 'parsed_away_60min', 'min75K1', 'min75KX', 'min75K2',
         'parsed_home_75min', 'parsed_away_75min']
-        live_df = pd.DataFrame(self.parse_matches(), columns = col_names)
+        if self.force_parsing:
+            live_df = pd.DataFrame(self.parse_matches(), columns = col_names)
+            live_df.to_csv('./_live_df,csv.gz', index = False, compression='gzip')
+        else:
+            if not os.path.isfile('./_live_df,csv.gz'):
+                live_df = pd.DataFrame(self.parse_matches(), columns = col_names)
+                live_df.to_csv('./_live_df,csv.gz', index = False, compression='gzip')
+            else:
+                live_df = pd.read_csv('./_live_df,csv.gz', compression='gzip')
         live_df = self.clean_dataset(live_df)
         live_df = self.add_k_by_time(live_df)
         live_df = self.normalization(live_df)
