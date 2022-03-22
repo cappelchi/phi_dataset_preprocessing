@@ -160,7 +160,7 @@ class football():
                                 (live_df.away_half1 != live_df.parsed_away_45min))]
         print(f'1 half parsing trust clean: {live_len - len(live_df)}')
         live_len = len(live_df)
-        k_type_list = ['K1', 'KX', 'K2', 'KX2']
+        k_type_list = ['K1', 'KX', 'K2']
         time_point_list = ['pre', 'min45', 'min60', 'min75']
         up_lo_list = ['_upper', '_lower']
         for time_point in time_point_list:
