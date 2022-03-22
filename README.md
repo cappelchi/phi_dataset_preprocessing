@@ -4,4 +4,4 @@ pipeline
 2. unpack
 3. parse
 4. clean
-5. normolize
+5. normalize
