@@ -1,10 +1,13 @@
 import pandas as pd
 pd.set_option('display.max_rows', 100)
-pd.set_option('display.max_columns', 50)
+pd.set_option('display.max_columns', 500)
+#pd.set_option('display.width', 1000)
+import os.path, os
 import numpy as np
 from tqdm import tqdm
 from glob import glob
 import yaml
+import subprocess
 
 class football():
     def __init__(self, yaml_path):
@@ -24,23 +27,26 @@ class football():
     @staticmethod
     def download(info_link, live_link, info_folder = './info/',
                  live_folder = './live/'):
-        from glob import glob
-        import os
         print('Download data.........')
-        !test -f ./live.rar || \
-        wget -q -O live.rar \
-        https://getfile.dokpub.com/yandex/get/{live_link}
-
-        !test -f ./info.rar || \
-        wget -q -O info.rar \
-        https://getfile.dokpub.com/yandex/get/{info_link}
-
+        if not os.path.isfile('./live.rar'):
+            bashCommand = f'wget -q -O live.rar https://getfile.dokpub.com/yandex/get/{live_link}'
+            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            _, _exit_code = process.communicate()
+        if not os.path.isfile('./info.rar'):
+            bashCommand = f'wget -q -O info.rar https://getfile.dokpub.com/yandex/get/{info_link}'
+            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            _, _ = process.communicate()
         print('Unpack data.........')
 
         if not os.path.isfile(info_folder + 'info.csv'):
-            !unrar e -y ./info.rar {info_folder}
+            bashCommand = f'unrar e -y ./info.rar {info_folder}'
+            print(bashCommand.split())
+            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            _, _ = process.communicate() 
         if not os.path.isdir(live_folder):
-            !unrar e -y ./live.rar {live_folder} > /dev/null
+            bashCommand = f'unrar e -y ./live.rar {live_folder}'
+            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+            _, _ = process.communicate()
         for file_name in glob(info_folder + '*'):
             if 'info' in file_name.split('/')[-1]:
                 os.rename(
@@ -50,9 +56,6 @@ class football():
         print('Data downloaded & unpacked')
 
     def get_info_dict(self):
-        import pandas as pd
-        import os.path
-        from tqdm import tqdm
         # забираем только нужные переменные
         # из матчей для которых есть файлы
         print('Search for matches by id')
