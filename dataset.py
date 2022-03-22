@@ -152,6 +152,21 @@ class football():
         live_df = live_df.loc[~((live_df.home_half1 != live_df.parsed_home_45min) | \
                                 (live_df.away_half1 != live_df.parsed_away_45min))]
         print(f'1 half parsing trust clean: {live_len - len(live_df)}')
+        live_len = len(live_df)
+        k_type_list = ['K1', 'KX', 'K2', 'KX2']
+        time_point_list = ['pre', 'min45', 'min60', 'min75']
+        up_lo_list = ['_upper', '_lower']
+        for time_point in time_point_list:
+            for k_type in k_type_list:
+                for up_lo in up_lo_list:
+                    live_df_column = k_type + time_point
+                    yaml_dict_index = k_type + time_point + up_lo
+                    if yaml_dict_index in self.yaml_dict:
+                        if 'upper' in up_lo:
+                            live_df = live_df.loc[live_df[live_df_column] <= self.yaml_dict[yaml_dict_index]]
+                        elif 'lower' in up_lo:
+                            live_df = live_df.loc[live_df[live_df_column] >= self.yaml_dict[yaml_dict_index]]
+        print(f'Clean with apply upper lower threshold for K columns: {live_len - len(live_df)}')
         print(f'Matches quantity: {len(live_df)}')
         return live_df.reset_index(drop = True)
 
