@@ -40,7 +40,6 @@ class football():
 
         if not os.path.isfile(info_folder + 'info.csv'):
             bashCommand = f'unrar e -y ./info.rar {info_folder}'
-            print(bashCommand.split())
             process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
             _, _ = process.communicate() 
         if not os.path.isdir(live_folder):
