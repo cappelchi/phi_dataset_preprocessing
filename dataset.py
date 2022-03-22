@@ -15,11 +15,14 @@ class football():
                  dataset4 = 'training',
                  system4 = 'windows',
                  draw_distribution = False,
-                 pdf_report = False):
+                 pdf_report = False,
+                 **kwargs):
         self.yaml_path = yaml_path
         self.yaml_dict = self.yaml2dict()
         self.yaml_dict['info_folder'] = './info/'
         self.yaml_dict['live_folder'] = './live/'
+        for key, value in kwargs:
+            self.yaml_dict[key] = value
         self.force_parsing = force_parsing
         self.dataset4 = dataset4
         self.system4 = system4
