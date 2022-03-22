@@ -136,7 +136,7 @@ class football():
     def clean_dataset(self, live_df:pd.DataFrame):
         del_list = [3600669]
         if self.yaml_dict['clean_with_file']:
-            clean_set = frozenset(pd.read_csv(arguments_dict['clean_file_name'], 
+            clean_set = frozenset(pd.read_csv(yaml_dict['clean_file_name'], 
                         compression = 'gzip')['idx'].to_list() + del_list)
         else:
             clean_set = frozenset(del_list)
