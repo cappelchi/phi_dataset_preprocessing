@@ -8,6 +8,11 @@ from tqdm import tqdm
 from glob import glob
 import yaml
 import subprocess
+import pickle
+import plotly.graph_objects as go
+from kaleido.scopes.plotly import PlotlyScope
+from fpdf import FPDF
+from time import gmtime, strftime
 
 class football():
     def __init__(self, yaml_path:str, 
