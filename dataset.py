@@ -10,7 +10,7 @@ import yaml
 import subprocess
 
 class football():
-    def __init__(self, yaml_path, 
+    def __init__(self, yaml_path:str, 
                  force_parsing = False, 
                  dataset4 = 'training',
                  system4 = 'windows',
@@ -28,15 +28,16 @@ class football():
         self.system4 = system4
         self.draw_distribution = draw_distribution
         self.pdf_report = pdf_report
-    def yaml2dict(self):
+
+    def yaml2dict(self) -> dict:
         with open(self.yaml_path) as f:
             arguments_dict = yaml.safe_load(f)
         print('Arguments loaded')
         return arguments_dict
 
     @staticmethod
-    def download(info_link, live_link, info_folder = './info/',
-                 live_folder = './live/'):
+    def download(info_link:str, live_link:str, 
+                 info_folder = './info/', live_folder = './live/'):
         print('Download data.........')
         if not os.path.isfile('./live.rar'):
             bashCommand = f'wget -q -O live.rar https://getfile.dokpub.com/yandex/get/{live_link}'
@@ -64,7 +65,7 @@ class football():
                         )
         print('Data downloaded & unpacked')
 
-    def get_info_dict(self):
+    def get_info_dict(self) -> pd.DataFrame:
         # забираем только нужные переменные
         # из матчей для которых есть файлы
         print('Search for matches by id')
@@ -82,7 +83,7 @@ class football():
                 file_exist_list.append(matches_count)
         return info_df.iloc[file_exist_list, -8:].astype('float32').to_dict('index')
 
-    def parse_matches(self):
+    def parse_matches(self) -> list:
         from tqdm import tqdm
         from glob import glob
         print('Parsing matches by files in live directory.')
@@ -143,7 +144,7 @@ class football():
 
         return final_list
 
-    def clean_dataset(self, live_df:pd.DataFrame):
+    def clean_dataset(self, live_df:pd.DataFrame) -> pd.DataFrame:
         del_list = [3600669]
         if self.yaml_dict['clean_with_file']:
             clean_set = frozenset(pd.read_csv(yaml_dict['clean_file_name'], 
@@ -180,7 +181,7 @@ class football():
         print(f'Matches quantity: {len(live_df)}')
         return live_df.reset_index(drop = True)
 
-    def add_k_by_time(self, live_df:pd.DataFrame):
+    def add_k_by_time(self, live_df:pd.DataFrame) -> pd.DataFrame:
         k_type_list = ['K1', 'KX', 'K2', 'KX2']
         min_list = ['45', '60', '75']
         res_dict = {'K1':1, 'KX':0, 'K2':-1, 'KX2':1}
@@ -201,7 +202,7 @@ class football():
                 live_df.loc[1,[f'{k_coeff}_ret_sh2_{minx}']] = 100000
         return live_df
     
-    def normalization(self, live_df:pd.DataFrame):
+    def normalization(self, live_df:pd.DataFrame) -> pd.DataFrame:
         print('Normalazing data...............')
         if ('home_half_threshold' in self.yaml_dict) & ('away_half_threshold' in self.yaml_dict):
             home_half_threshold = self.yaml_dict['home_half_threshold']
@@ -245,6 +246,7 @@ class football():
         return live_df
     
     def csv4win(self, live_df:pd.DataFrame):
+        time_prefix = strftime("%Y-%m-%d_%H:%M", gmtime())
         line_terminator = '\n'
         if self.system4 == 'windows':
             line_terminator = '\r\n'
@@ -267,10 +269,50 @@ class football():
                 'K1_ret_sh2_45', 'KX_ret_sh2_45','K2_ret_sh2_45',
                 'K1_ret_sh2_60', 'KX_ret_sh2_60','K2_ret_sh2_60',
                 'K1_ret_sh2_75', 'KX_ret_sh2_75','K2_ret_sh2_75',
-                ]].to_csv('base_line_data.csv', index = False, line_terminator = line_terminator)
+                ]].to_csv(f'base_line_data_{time_prefix}.csv', 
+                          index = False, 
+                          line_terminator = line_terminator)
+        with open(f'./base_line_data_{time_prefix}.yaml', 'w') as f:
+            yaml.dump(self.yaml_dict, f, default_flow_style=False)
+
+    def get_pdf_report(self):
+        class PDF(FPDF):
+            def print_chapter(self, title):
+                self.alias_nb_pages()
+                self.add_page()
+        pdf = PDF(orientation = 'L', unit = 'mm', format='A4')
+        time_points = ['pre', 'min45', 'min60', 'min75']
+        for time_point in time_points:
+            for file_name in glob(f'./visualization/{time_point}*'):
+                pdf.add_page()
+                pdf.image(file_name, w = 240, h = 140)
+        pdf.output(f'./visualization/visualization_report_{strftime("%Y-%m-%d_%H:%M", gmtime())}.pdf', 'F')
+
+    def plot_distribution(self, live_df:pd.DataFrame):
+        scope = PlotlyScope(
+            plotlyjs="https://cdn.plot.ly/plotly-latest.min.js",
+            # plotlyjs="/path/to/local/plotly.js",
+        )
+        bashCommand = f'mkdir -p ./visualization'
+        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+        _, _exit_code = process.communicate()
+        norm_types = ['_norm_pos', '_norm_posneg']
+        time_points = ['pre', 'min45', 'min60', 'min75']
+        coeff_list = ['K1', 'KX', 'K2']
+        for norm_type in norm_types:            
+            for time_point in time_points:
+                fig = go.Figure()
+                for coeff in coeff_list:
+                    live_df_index = time_point + coeff + norm_type
+                    fig.add_trace(go.Histogram(x=live_df[live_df_index], name = live_df_index))
+                fig.update_layout(barmode='stack')
+                fig.show()
+                with open('./visualization/' + time_point + norm_type + '.jpeg', 'wb') as js:
+                    js.write(scope.transform(fig, format='jpeg'))
+        if self.pdf_report:
+            self.get_pdf_report()
 
     def download_parse_clean_normalize(self):
-
         self.download(self.yaml_dict['info_link'], self.yaml_dict['live_link'])
         col_names = ['idx', 'home_half1', 'away_half1', 'home_score', 'away_score',
         'preK1', 'preKX', 'preK2', 'Result', 'min45K1', 'min45KX', 'min45K2', 
@@ -289,5 +331,7 @@ class football():
         live_df = self.clean_dataset(live_df)
         live_df = self.add_k_by_time(live_df)
         live_df = self.normalization(live_df)
+        if self.draw_distribution:
+            self.plot_distribution(live_df)
         self.csv4win(live_df)
         return live_df
